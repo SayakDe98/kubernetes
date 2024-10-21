@@ -1,0 +1,269 @@
+Kubernetes(k8s) is an open source container orchestration tool
+Developed by google
+In foundation it manages containers, usually from Docker or from other technology.
+
+This means k8s helps you manage containerized applications in different
+deployment environments like physical machines, virtual machines and even cloud environments.
+
+What problems does kubernetes solve?
+What are the tasks of an orchestration tool?
+
+The need for a container orchestration tool:
+-> The trend from monolith to microservices have given rise to 
+container technology because containers offer the perfect host for
+small independent apps like microservices.
+
+If there are 100's of microservices then managing them via scripts
+is nearly or fully impossible that's why we need kubernetes.
+-> Increased usage of containers.
+-> Demand for a proper way of managing hundreds of containers.
+
+What features do orchestration tools like kubernetes offer?
+-> High availability or no downtime. Means it is always accessible.
+-> Scalability or high performance. It loads fast and users have a very high 
+response rates from the application.
+-> Disaster recovery - backups and restore. If infrastructre has some 
+problems like data is lost or servers explode or something bad happens 
+with the server center then infrastructre must have some mechanism to
+backup the data and to restore it to a later state such that the application
+doesn't lose any data.
+A containerized application can run from the later state after recovery.
+All of these are functionalities that container orchestration technologies 
+like kubernetes offer.
+
+
+#2 Kubernetes Components explained:
+Kubernetes has a ton of Components but most of the time we are going to
+work with a handful of them.
+We are going to create a simple JS Application and find out how 
+each component helps us to deploy our application and what is the role
+of each of these components.
+
+Let's start with a basic setup of a worker node or in kubernetes term 
+a node which is a simple server(a physical or virtual machine).
+The basic component or the smallest unit of kubernetes is a pod.
+
+POD
+- Smallest unit of k8s
+- Abstraction over container.
+What pod does is it creates a running environment or a layer on top of the container.
+Reason for this: Kubernetes wants to abstract away the container runtime/technologies
+so that we can replace them if we want to, also because we don't want to
+work with Docker or other container technologies used in k8s.
+We just interact with kubernetes layer.
+So we have our application pod which is our own application.
+That will maybe use a database pod with its own container.
+Pod usually runs 1 application container inside of it.
+We can run multiple apps inside a pod but usually 1 main app container runs in it.
+It can also run helper/side container alongwith it.
+
+How pods communicate with each other?
+Kubernetes provies out of the box a virtual network.
+Each pod gets its own IP Address.
+This IP Address is an internal IP Address.
+Pods in kubernetes are ephemeral means they can die very easily.
+For example if I lose a DB container.
+A pod can die for example for the following reasons:
+- The server that the pod is running on ran out of resources
+
+A new pod gets created in its place when an old one dies.
+When this happens this new pod will be assigned a new IP Address,
+which obviously is inconvinent if you are communicating with the Database
+using the IP address because we need to restart the app everytime new pod is created where the db resides.
+
+
+SERVICE
+Because of the above issue of getting assigned a new IP Address when a new pod is created
+which results in the need to change the IP Address for the app which was
+connecting it, hence we need a service.
+
+A Service is a permanent IP Address that can be attached to each pod.
+
+So my app will have its own service and the database will have its own service.
+The lifecycle of the Pod and the service are not connected.
+So even if the Pod dies the service and its IP Address stays.
+
+We want our app to be accessible through browser.
+For this we need to create an external service.
+External service is a service that opens communication from external sources.
+On the other hand we don't want our db to be open to the outside world.
+Hence for db we will use an internal service.
+
+We can specify the type of service when we are creating a service.
+
+INGRESS
+If we use external service for our app then it will look like:
+http://<domain-name>.com/in/so on...
+This is not secure so we can't use this alone.
+Hence we need a new service which provides secured domain for our app.
+This component of k8s is known as Ingress.
+So first the request from external world to ingress which has a secure domain.
+Ingress then forwards this to Service.
+
+CONFIGMAP and SECRET
+Pods communicate with each other using a service.
+So my application will have a database endpoint let's say mongo-db-service
+that uses to communicate with the database.
+Where do we configure this database endpoint/url?
+Usually we do it in .env file / application.properties
+but usually it's in the built image of the app.
+
+Configmap is external configuration for our app.
+eg: db url
+k8s connects to the pod and if the configmap config changes then reflects automatically.
+No need to rebuild image.
+
+Secret:
+Keeping username and password as plain text in configmap is not secure.
+Hence we should keep it in a secure place like Secret.
+
+Secret 
+- used to store secret data. 
+- base64 encoded.
+
+Secret needs to be connected to pod.
+
+VOLUMES:
+Data storage.
+If pod is restarted then data will be lost.
+We should use volumes for this.
+We can store in local machine or remote storage like outside k8s cluster
+Storage is an external hard drive plugged into k8s cluster.
+k8s doesn't manage data persistance. User is responsible for managing,
+taking backups, etc
+
+DEPLOYMENT and STATEFUL SET
+We will have a replica/clone which will also run our service.
+We will define a blueprint for our pods. Specify how many replicas we wanna run.
+This blueprint is known as deployment. 
+We can scale up and down the number od replicas we need.
+Deployment is an abstraction of pods.
+Hence deployment will take care of pod replication
+
+We cannot replicate a db with deployment because db has a state.
+We need a mechanism for managing data inconsistenices.
+Hence we use StatefulState instead of deployment for db.
+
+Host db outside k8s strucure because it is easier than statefulset.
+
+Summary:
+pod - abstraction of containers
+service - communication between pods
+ingress - routing traffic
+configmap and secrets - external configuration
+volumes - data persistance
+deployment and statefulset - pod blueprints with replicating mechanism.
+
+Kubernetes Architecture explained.
+Two types of nodes k8s operates:
+Master and slaves.
+
+Main component of k8s arch is worker servers / nodes.
+Each node has multiple pods on it.
+3 process must be installed on every node
+worker nodes do the actual node.
+First process that needs to run is container runtime like docker.
+Process that schedules them is kublet. 
+Kublet interacts with both the container runtime(docker) and the node(machine itself)
+Kublet is responsible for taking that config and running that pod with a container inside it.
+Also assigns resources like cpu and ram from that node to that container.
+
+Usually k8s cluster is made up of multiple nodes which also must have 
+container runtime and kublet services inside of them.
+
+we will also have other pods which are replicas of existing pods.
+Communication between these pods is done by services. 
+Services are like load balancer which catches request directed pod like db
+and forwards to respective pod.
+Third process responbile for forwarding request from services to pods
+is kube proxy.
+Kube proxy must be installed on every node.
+It is intellignt forwarding logic inside that makes sure communication happens in a performant way
+with low overhand.
+If an application my app replica is making a request to db
+instead of the service forwarding it to any db. The kube proxy will forward 
+it to the same replica which initiated the request.
+Thus saving network request from hitting another replica.
+
+For k8s cluster to function properly:
+we need kublet, kube proxy and container runtime.
+
+How do you interact with this cluster?
+Master servers/nodes have different process run inside them.
+4 process run on every master node that control cluster state
+and the worker nodes as well.
+1st service: Api server
+When user wants to deploy a new app in k8s cluster
+you interact with an api server using some client like
+UI like k8s dashboard, CLI like kublet or an kubernetes api.
+
+API server is like cluster gateway which gets initial requests like update or query.
+It also acts as a gatekeeper for authentication to make sure only authentiated and authorized requests get through to the cluster.
+
+
+Whenever we want to schedule new pods, deploy new apps, create new service,
+then we have to talk to api server.
+The api server then validates our requests
+and if everythign is successful then it will forward our request to other
+process inorder to schedule this pod or create this pod as requested.
+
+If we want to know cluster health we have to use this as well.
+It is really good as there is only 1 entry point to the cluster.
+
+Another master process is Scheduler.
+The scheduler will start app pod in one of the worker nodes.
+Scheduler decides on which worker node to start the next pod/component will be scheudled.
+The node which is least busy/has most resource the scheduler puts it in that node.
+Kublet executes the request given by scheudler.
+
+Next process is Controller manager.
+Controller manager detects cluster state changes.
+If pods die container manager it makes reqest to scheduler to restart pod.
+Then makes reqest to kublet to restart
+
+Last process is etcd.
+etcd is cluster brain.
+Cluster changes get stored in key value pair.
+Like if pod dies it gets stored here.
+
+We can take help of etcd to know:
+Is cluster healthy
+WHat resources are available
+Did cluster state change
+
+All of this is stored in etcd cluster
+What is not stored in etcd is the actual app data.
+If we have a db app running inside of a cluster.
+THen data will be stored elsewhere and not here.
+
+Usually we have multiple master nodes and etcd process acts as load balancer
+
+For a very basic k8s cluster we can have 2 master and 3 worker nodes.
+Worker nodes require more resource because they do more work.
+We can increase master and worker nodes for making app more robust.
+
+For adding a new master/node server:
+1. Get new bare server
+2. Install all the master / worker node process
+3. Add it to the cluster.
+
+MINIKUBE
+If we want to deploy our app locally to k8s then there might be
+resource issue in our machine. Thats why we use minikube.
+Minikube: It is a one node cluster. The master and worker processes 
+both run on one machine(node).
+This node will have a docker container pre installed.
+It will run on our laptop using virtual box/hypervisor.
+
+Minikube:
+- Creates a virtual box on our laptop
+- Node runs in that virtual box
+- 1 node k8s cluster
+- Used for testing purposes.
+
+KUBECTL:
+Now as we have created a node using minikube which represents our local machine.
+We need some way to interact with cluster.
+We should be able to create pods and other k8s components on this node.
+The way to achieve this is kubectl which is a command line tool for k8s cluster.
+
